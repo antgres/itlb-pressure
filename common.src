@@ -1,0 +1,22 @@
+#
+# Common includes. Do not execute this file
+#
+
+set -o errexit
+set -o errtrace
+set -o pipefail
+set -o nounset
+
+#
+# common exit function
+#
+die() {
+  # die with message in red and bold
+  printf "\33[2K\r\033[1;31m%s\033[0m\n" "Error: $*" >&2
+  exit 1
+}
+
+clear_cache(){
+  # clear cache for a long running workload
+  sync; /usr/bin/sudo sh -c 'echo 1 > /proc/sys/vm/drop_caches'
+}
