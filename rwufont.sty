@@ -1,0 +1,38 @@
+\NeedsTeXFormat{LaTeX2e}[2017/01/01]
+\ProvidesPackage{rwufont}[2019/08/29 RWU corporate font package]
+
+\RequirePackage[no-math]{fontspec}
+
+\setmainfont[ExternalLocation=Fonts/]{BarlowSemiCondensed-Regular.ttf}%
+    [Ligatures=TeX,
+    BoldFont=BarlowSemiCondensed-Bold.ttf,
+    ItalicFont=BarlowSemiCondensed-LightItalic.ttf,
+    BoldItalicFont=BarlowSemiCondensed-BoldItalic.ttf
+    ]
+\setsansfont[ExternalLocation=Fonts/]{BarlowSemiCondensed-Regular.ttf}%
+    [Ligatures=TeX,
+    BoldFont=BarlowSemiCondensed-Bold.ttf,
+    ItalicFont=BarlowSemiCondensed-LightItalic.ttf,
+    BoldItalicFont=BarlowSemiCondensed-BoldItalic.ttf
+    ]
+
+\providecommand*{\glqq}{\mbox{\char"201E}}
+\renewcommand*{\glqq}{\mbox{\char"201E}}
+\providecommand*{\grqq}{\mbox{\char"201C}}
+\renewcommand*{\grqq}{\mbox{\char"201C}}
+% FIXME: Disabled for now, as the font glyph for the opening single
+% quotation mark has unwanted extra space after it (font bug)!
+%\providecommand*{\glq}{\mbox{\char"201A}}
+%\renewcommand*{\glq}{\mbox{\char"201A}}
+%\providecommand*{\grq}{\mbox{\char"2018}}
+%\renewcommand*{\grq}{\mbox{\char"2018}}
+\providecommand*{\flqq}{\mbox{\char"00BB}}
+\renewcommand*{\flqq}{\mbox{\char"00BB}}
+\providecommand*{\frqq}{\mbox{\char"00AB}}
+\renewcommand*{\frqq}{\mbox{\char"00AB}}
+\providecommand*{\flq}{\mbox{\char"203A}}
+\renewcommand*{\flq}{\mbox{\char"203A}}
+\providecommand*{\frq}{\mbox{\char"2039}}
+\renewcommand*{\frq}{\mbox{\char"2039}}
+
+\endinput

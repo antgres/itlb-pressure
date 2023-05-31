@@ -1,0 +1,9 @@
+\chapter{Objective}\label{chapt:objective}
+
+The objective of this thesis is to analyse if reducing the instruction lookaside buffer (ITLB) pressure through code collocation in the kernel improves the performance for specific workloads.
+
+To achieve that, this thesis will be reorganizing the code within the \textit{text} section itself, rather than reorganizing linker sections relative to each other.
+
+By reordering the kernel code in such a way that frequently used caller-callee function pairs for the kernel hot path of a specific workload are located closer together, it is to be expected that the ITLB hit-rate increases. This methodology can improve the performance by reducing the number of ITLB misses and page faults.
+
+However, it should be avoided to rely on developers to manually mark code which should be organised together, as this approach is unlikely to scale and may result in incorrect guesses as the optimal layout varies depending on the workload. Instead, this thesis will be presenting automatic ways to reorganize the code in the \textit{text} section to reduce the ITLB pressure.

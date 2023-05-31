@@ -1,0 +1,208 @@
+\chapter*{Appendix}\label{appendix:implement}
+\addcontentsline{toc}{chapter}{Appendix}
+
+This appendix provides a more detailed description of the commands used in this thesis. Non-essential information has been removed and/or replaced with a simpler version for readability. The complete implementation can be found at \cite{github}.
+
+\section{Call graph creation}\label{appendix:callgraph}
+
+The code snippet in listing \ref{lst:collectdata} provides a unified testing procedure for creating a weighted call graph using \textit{perf}. It initiates the network workload with a defined warm-up time of 10 minutes, then samples the actual number of caller-callee calls in the defined duration. Afterwards, any unused page caches are dropped.
+
+\vspace{.5\baselineskip}
+\begin{lstlisting}[
+    label={lst:collectdata},
+    caption={Commands for executing a call graph collection run}
+]
+#!/usr/bin/env bash
+TIME=140
+WARMUP_TIME=$(( 60 * 10 ))
+
+# start workload
+workload/network.sh --time $(( TIME + WARMUP_TIME )) \
+                    --num-server 20 --dma-buffer 0 &
+
+echo "Wait ${WARMUP_TIME} seconds to warmup..."
+sleep $WARMUP_TIME
+
+echo "Start data collection..."
+graphrecord.sh --time $TIME \
+    --out "$PWD/callgraph-$(date -Iseconds)" \
+    --freq 3000`\newpage`
+clear_cache(){
+    sync; sudo sh -c 'echo 1 > /proc/sys/vm/drop_caches'
+}
+clear_cache
+\end{lstlisting}
+
+More detailed commands on how caller-callee calls are sampled and transformed into a usable form in the \textit{graphrecord.sh} script can be seen in listing \ref{lst:perfrecord}.
+
+\vspace{.5\baselineskip}
+\begin{lstlisting}[
+    label={lst:perfrecord},
+    caption={Simplified commands for generating call graph information with perf}
+]
+perf record --all-cpus --event cycles:k --branch-filter any,k \
+    --freq 3000 --call-graph dwarf,8192 \
+    -- sleep ${TIME}
+
+perf report --header --show-info --show-nr-samples --branch-stack \
+    --sort sample \
+    --fields +symbol_from,symbol_to,symbol_size \
+    --percent-limit 0 --field-separator '$' \
+    --stdio > "${OUT_FILE}.report"
+\end{lstlisting}
+
+\vspace{-\baselineskip}
+\section{Network workload}\label{appendix:workload}
+
+A simplified implementation of the network workload can be seen in listing \ref{lst:workload}. It creates multiple instances of client-server pairs that exchange data locally using the zero-copy functionality within a specified time frame. This process occurs in both directions, from client to server and from server to client. Optionally, the script can wait for the applications to complete.
+
+\vspace{.5\baselineskip}
+\enlargethispage{2\baselineskip}
+\begin{lstlisting}[
+    label={lst:workload},
+    caption={Commands for running a network workload}
+    ]
+#!/usr/bin/env bash
+IPERF_SERVER_PARAM="--server --daemon --one-off --bind $IP"
+IPERF_CLIENT_PARAM="--client $IP --zerocopy --time $TIME"
+NICE="sudo nice -n -5" # set nice value for all instances
+
+# start servers
+for i in $(seq 1 $NUM_SERVER); do
+    S_PORT=$(( 6000 + i ))
+    R_PORT=$(( 6000 + NUM_SERVER + i ))
+
+	$NICE iperf3 $IPERF_SERVER_PARAM --port $S_PORT >/dev/null
+	$NICE iperf3 $IPERF_SERVER_PARAM --port $R_PORT >/dev/null
+done`\newpage`
+# start clients
+for i in $(seq 1 $NUM_SERVER); do
+    TX_PORT=$(( 6000 + i ))
+    RX_PORT=$(( 6000 + NUM_SERVER + i ))
+    
+    $NICE iperf3 $IPERF_CLIENT_PARAM --port $TX_PORT >/dev/null &
+    $NICE iperf3 $IPERF_CLIENT_PARAM --port $RX_PORT \
+                                     --reverse >/dev/null &
+done
+
+# if wait flag is specified wait for all programs to finish
+(( WAIT )) && wait -n
+\end{lstlisting}
+
+\section{PMU events collection}\label{appendix:events}
+
+Listing \ref{lst:collectsta} provides a unified testing procedure for collecting PMU events. Multiple test runs are executed in a single test. For each test run, it initializes a network workload with a defined warm-up time of 10 minutes, followed by the actual collection of PMU events. Afterwards, it drops any unused page cache for the next test run.
+
+\vspace{.5\baselineskip}
+\begin{lstlisting}[
+    label={lst:collectsta},
+    caption={Commands for starting a PMU events collection run}
+]
+#!/usr/bin/env bash
+TIME=$(( 3600 * 6 ))
+WARMUP_TIME=$(( 60 * 10 ))
+LOOPS=5
+
+for i in $(seq 1 $LOOPS); do
+    # start workload
+    workload/network.sh --time $(( TIME + WARMUP_TIME )) \
+                        --num-server 20 --dma-buffer 2024 &
+    
+    echo "Wait ${WARMUP_TIME} seconds to warmup..."
+    sleep $WARMUP_TIME
+    
+    echo "Start PMU events collection..."
+    itlbstat.sh --out "$PWD/$i-itlbstats-$(date -Iseconds)" $TIME`\newpage`
+    clear_cache(){
+        sync; sudo sh -c 'echo 1 > /proc/sys/vm/drop_caches'
+    }
+    clear_cache
+done
+\end{lstlisting}
+
+For a more detailed understanding of how the PMU events are sampled and transformed into a usable form in the \textit{itlbstat.sh} script, one can refer to listing \ref{lst:stats}. The defined PMU events and metrices in chapter \ref{section:events} are used for the implementation. In this listing, repetitive or uninteresting code sections have been abbreviated with \textit{[...]}. This implementation is based on the work of Brendan Gregg's script \textit{tlbstat} \cite{tlbstat}.
+
+\vspace{.5\baselineskip}
+\begin{lstlisting}[
+    label={lst:stats},
+    caption={Simplified commands for collecting PMU events},
+    commentstyle=\color{black},
+    keywordstyle=\color{black},
+]
+perf stat -e cycles \
+    -e itlb_misses.miss_causes_a_walk \
+    # [...]
+    -e instructions \
+    -I $(( 1 * 1000 )) \
+    --all-cpus -- sleep ${TIME} 2>&1 | awk \
+    -v hlines=0 -v out="${file}.report" -v interval=1 '
+    # [...]
+    # counters:
+    $3 == "cycles" { cycles = $2; }
+    $3 == "itlb_misses.miss_causes_a_walk" { imwalk = $2 }
+    # [...]
+    $3 == "instructions" {
+        ins = $2
+        # [...]
+        out = sprintf("%-10d %-10d # [...] %-10d",
+            cycles / 1000,
+            imwalk,
+            # [...]
+            ins / 1000)
+        print out
+        # [...]
+'
+\end{lstlisting}
+
+\newpage
+
+\section{Bandwidth test}\label{appendix:bandwidth}
+
+Listing \ref{lst:collectband} describes a unified testing procedure for testing the bandwidth. Multiple test runs are executed in a single test. For each test run, it initializes a network workload with a defined warm-up time of 10 minutes, followed by the actual 1-hour long bandwidth test. Afterwards, any unused page cache is dropped for the next test run.
+
+\vspace{.5\baselineskip}
+\begin{lstlisting}[
+    label={lst:collectband},
+    caption={Commands for starting a bandwidth test}
+]
+#!/usr/bin/env bash
+TIME=$(( 3600 * 1 ))
+WARMUP_TIME=$(( 60 * 10 ))
+LOOPS=5
+
+COMMON="workload/network.sh --bandwidth --dma-buffer 2024 --wait"
+
+for i in $(seq 1 $LOOPS); do
+    OUTPUT="$i-bandwidth.perf"
+    
+    echo "Wait ${WARMUP_TIME} seconds to warmup..."
+    $COMMON --time $WARMUP_TIME --out $OUTPUT
+    
+    echo "Start bandwidth test..."
+    $COMMON --time $TIME --out $OUTPUT
+    
+    clear_cache(){
+        sync; sudo sh -c 'echo 1 > /proc/sys/vm/drop_caches'
+    }
+    clear_cache
+done
+\end{lstlisting}
+
+\vspace{-\baselineskip}
+
+A simplified implementation of the bandwidth test, which is called via \textit{workload/network.sh --bandwidth}, can be seen in listing \ref{lst:bandwidth}. It creates a single client-server instance and captures the output of the client. It exchanges data locally using the zero-copy functionality within a specified time frame.
+
+\enlargethispage{2\baselineskip}
+\vspace{.5\baselineskip}
+\begin{lstlisting}[
+    label={lst:bandwidth},
+    caption={Simplified commands for executing a bandwidth test}
+]
+#!/usr/bin/env bash
+B_SERVER_PARAM="--server --daemon --one-off --bind $IP"
+B_CLIENT_PARAM="--client $IP --zerocopy --time $TIME --format k"
+NICE="sudo nice -n -5" # set nice value for all instances
+
+$NICE iperf3 $B_SERVER_PARAM --port 6000 >/dev/null
+$NICE iperf3 $B_CLIENT_PARAM --port 6000 > "$OUTPUT"
+\end{lstlisting}

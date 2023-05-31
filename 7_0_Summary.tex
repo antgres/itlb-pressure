@@ -1,0 +1,7 @@
+\chapter{Summary}\label{chapt:summary}
+
+It was shown that code collocation, in conjunction with the C3 heuristic, can effectively reduce ITLB pressure for a specific workload. However, it is important to note that the findings and recommendations presented here are based on a specific Debian release, kernel version, processor model, and workload. For a more general recommendation on whether code collocation effectively reduces ITLB pressure in the kernel, it is highly recommended to conduct further test runs with diverse configurations.
+
+Moreover, it should be noted that code collocation with the C3 heuristic is just one among several techniques that can potentially reduce ITLB pressure. As described in chapter \ref{chapt:heuristic},  the combination of function-sorting with other techniques, which are part of profile guided optimisation, can further contribute to the reduction of ITLB pressure. A project that tries to do this is for example BOLT \cite{llvm-bolt}.
+
+Additionally, there are alternative techniques available, both with and without the use of PGO, that can effectively reduce ITLB pressure. An Intel white paper \cite{intel_opt_runtime} highlights other possibilities, such as leveraging large pages through the use of the \textit{libhugetlbfs} library. The results in \cite{hfsort} indicate that combining the C3 heuristic with huge pages can lead to an even greater reduction of ITLB pressure.

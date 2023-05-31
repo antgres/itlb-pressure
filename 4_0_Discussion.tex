@@ -1,0 +1,81 @@
+\chapter{Conceptual analysis}\label{chapt:consider}
+
+This chapter covers the discussion and analysis regarding the expected issues occurring during the upcoming design stage. The focus will be on two questions: how to \textit{analyze a program for a weighted call graph} and how to \textit{sort a weighted call graph into a linear layout}.
+
+\section{Call graph analysis}\label{chapt:callgraph}
+
+Call graphs show the relationship between call sites and functions, i.e. which caller function calls which other callee functions and vice versa. \cite[p. 133]{binanal} 
+
+The number of calls where the caller invokes the callee can be counted during the runtime of the program. By dividing this value with the total amount of counted samples, a weight can be assigned to this relationship which describes how often the caller invokes the callee or vice versa during the runtime.
+
+From this information a weighted call graph, or \textit{directed network}, can be created. \cite{graphintro} This can be done in two ways: with a \textit{static analysis} or a \textit{dynamic analysis}.
+
+\subsection{Static analysis}
+
+Static analysis is the process of analysing a program without executing it. It treats the program as data, which is then the subject for analysis. This can be done by examining the source code or the machine code of the program, as well as the data and metadata associated with it. \cite{binanal} \cite{lca-gcc-plugin} \cite{staticanalyze}
+
+The advantage is that the program does not have to be executed, thus the result of the analysis is independent of a hardware unit. Additionally, the results of a static analyser are consistent: in comparison to an execution of the program on real hardware no external conditions such as temperature of the measuring room, noise interference or other interference sources can influence the result. \cite[p. 68]{patmc} \cite{staticanalyze}
+
+The downside is that building a cost-effective program analyser is not easy, since most programs are complex and have many lines of code. This problem is further aggravated by the fact that for such programs there are countless combinations of inputs and countless program states which can be generated from them, to which the analyser must provide a deterministic result. \cite[p. 19]{staticanalyze}
+
+Another challenge with static analysis is that an ideal static analyser would be able to fully analyse the desired property automatically within a finite amount of time. For instance, one such property could be determining whether a program is error-free during runtime. However, as demonstrated by the \textit{Halting Problem}, this is an unsolvable problem. \cite[p. 19]{staticanalyze}
+
+The halting problem describes the limitation to identify whether a given program will halt or continue to execute indefinitely. It is proven that this property of interest is unsolvable. \cite[p. 23]{staticanalyze} This means that it can not be predicted beforehand if a program, for all possible inputs, finishes its execution.
+
+In general, one can say that for any non-trivial property of a program, it is undecidable whether a given program has this property or not. This theorem is called \textit{Rice's Theorem}. \cite[p. 24]{staticanalyze}
+
+This means that for any non-trivial property, that can't be decided by examining the program's inputs, there will always be a program for which it is impossible to determine whether that property applies or not. An example could be the property of a program being able to determine whether a given randomly selected program will output a prime number or not. Given an arbitrary program, it is not possible to determine whether this is the case or not.
+
+The halting problem and Rice's theorem point to the fact that the output of a static analyser is not necessarily a deterministic result. This is because the used heuristics and approximations to relax the requirements for an ideal static analyser may not always work as intended, especially for more complex and optimized programs. \cite[p. 24-25]{staticanalyze}
+
+It follows that a static analyser may produce false positives and false negatives, meaning that it may identify certain features or properties of a program that do not actually exist or misinterpret certain code wrongly. \cite[p. 25]{staticanalyze} Furthermore, some programs, e.g. malware, may use obfuscation or code packing techniques that make analysing them more difficult. In these cases, static analysis may need to be performed completely manually. \cite[p. 30]{staticanalyze} \cite[p. 13]{malware}
+
+This thesis deals with the Linux kernel, which is a large and complex program. Therefore, it can be assumed that the above theorems and associated problems are applicable here. The resulting call graph could therefore represent incorrect relationships and weights.
+
+Furthermore, the kernel is mainly written in \textit{C} programming language. Its low-level nature makes it possible to use complex pointer arithmetic, which complicates the creation of call graphs when e.g. indirect function calls are used. Additionally, the code following the preprocessor stage and the resulting compiled binary can differ greatly from each other depending on the architecture and entries selected for compilation. 
+
+Moreover, the frequency and timing of system calls being invoked depends entirely on the user-space application in use and its specific implementation. Therefore, in order to obtain a realistic weighted call graph, it is necessary to not only statically analyse the kernel itself but also the application being employed, which increases the effort involved.
+
+\vspace{-\baselineskip}
+\subsection{Dynamic analysis}
+
+In comparison to static analysis, dynamic analysis is the process of analysing the properties of a program while executing it on the hardware. \cite[p. 2]{binanal} It enables the identification of issues that may not be readily detected by static analysis. By collecting real-time information during the runtime, dynamic analysis can effectively capture and analyse the precise state of the program at any given moment. This allows for the detection of performance-related issues and other runtime-specific problems that static analysis may overlook. \cite{concept-dynamic}
+
+\enlargethispage{3\baselineskip}
+One downside of dynamic analysis that must be considered is the risk of measurement bias. Measurement bias is the tendency for measurements to be inaccurate due to errors or imprecision in the measurement process. However, completely eliminating it can be challenging because it is unpredictable when and where it may occur. \cite[p. 17-19]{patmc} \cite{wrong-data}
+
+In addition, the impact of noise, external side effects and similar sources of interference during the analysis must be minimized as much as possible as not to distort the result. \cite[p. 69]{patmc}
+
+\newpage
+
+On top of that, the observer effect has to be taken into account. The observer effect states that measuring a property affects the observation because running the observer itself uses CPU cycles in order to observe the running program. This has the consequence that the analyser can influence e.g. how caching is done, how memory is allocated, etc. \cite[p. 20]{patmc} \cite[p. 387]{masterembedded} Therefore, it is important that the dynamic analyser has as little overhead as possible, i.e. uses as few CPU cycles as possible for its observation task. 
+
+Various techniques, including instrumentation, tracing, and sampling, can be employed to observe and analyse the performance of a running program. \cite[p. 52]{patmc}
+
+Instrumentation and tracing insert additional code to collect information during the runtime. To do this, the code must be modifiable. In comparison, tracing focuses on monitoring the interactions between a program and its external dependencies, such as libraries or other services, which may already have some form of instrumentation. Therefore, the program itself does not have to be modified. \cite[p. 52-55]{patmc}
+
+Compared to instrumentation and tracing, sampling, also called \textit{profiling}, interrupts the running program to capture a new sample. This sample is a snapshot of the current program state, which can be e.g. the value of the instruction pointer at the time of the interrupt. Sampling provides a coarse view of the targets activity, depending on the sampling frequency. \cite[p. 35]{brendan} \cite[p. 59]{patmc}
+
+Instrumentation and tracing offer the advantage of generating precise and detailed data of the program state. However, they can introduce significant overhead and generate large amounts of data, depending on the type and amount of information collected. Additionally, a version of the program with and without instrumentation or tracing enabled must be compiled to avoid additional runtime overhead during e.g. performance tests. \cite[p. 53-54]{patmc} \cite{bolt}
+
+In comparison, sampling does not produce as precise data as instrumentation or tracing, but has a much lower overhead during runtime. The precision of the data collected through sampling can be improved by increasing the number of samples. \cite{hfsort} \cite{bolt} The kernel has its own infrastructure for instrumentation as well as sampling.
+
+\enlargethispage{3\baselineskip}
+Because of an additional build for data collection and a very significant CPU and memory overhead, instrumented binaries are not used in production environments. \cite{bolt} Nonetheless, these techniques are employed in other tools like e.g. \textit{Propeller} \cite{propeller}.
+
+\section{Function-ordering heuristics}\label{chapt:heuristic}
+
+\textit{Function-ordering} or \textit{function placement} is a subset of \textit{feedback-driven optimizations} (FDO) or also called \textit{profile-guided optimizations} (PGO). \cite[p. 122]{brendan} \cite{bolt}
+
+PGO aims to enhance the performance of a program by collecting information about its actual runtime behaviour, such as function call frequencies and hot code paths, and uses that information to guide optimization decisions during compiling. \cite{kernel_pgo} \cite[p. 122]{brendan} \cite{intelpgo}  This covers a large area of optimisation techniques such as \textit{basic block placement}, \textit{basic block alignment}, \textit{function splitting} and more. Explanations and examples for these can be found in \cite[p. 103-111]{patmc}. This thesis however focuses only on the effects of using a function sorting heuristic. 
+
+Heuristics are employed because, if $P \neq NP$, function-ordering is an NP-hard problem, i.e. this problem can't be solved in polynomial time. \cite{codestitcher}  \cite{np-hard-explained} \cite{nphard} The most common function-sorting heuristic implemented in compilers, binary optimizers and performance tools is the \textit{procedure ordering} heuristic, which is described in \cite{phheuristic}. It is also referred to as \textit{Pettis-Hansen} (PH) heuristic. \cite{codestitcher} \cite{hfsort}
+
+The PH heuristic is based on an \textit{undirected} weighted call graph, where the distinction between caller and callee functions is not considered, but the weight between them is known. It processes this graph in decreasing weight order, merges the two functions associated with their weight together and adds their total weight up. It proceeds until all weights are analysed. \cite{anticodestitcher} \cite{hfsort}  \cite{phheuristic}
+
+Building upon the PH heuristic is the \textit{Call-Chain Clustering} (C3) heuristic, described in \cite{hfsort}. C3 differs from the PH heuristic in several ways: it utilizes a directed call graph that incorporates the total call-distance and sorts the merged functions based on a density metric.
+
+Based on the findings presented in \cite{hfsort}, the C3 heuristic demonstrates an average reduction of ITLB misses by approximately 12\% compared to the PH heuristic. The evaluation further concludes that through the use of the C3 heuristic the analyzed application experiences a performance gain of up to 2.9\% when compared to the PH heuristic. At the time of writing the C3 heuristic is used in the \textit{BOLT} project \cite{bolt} which got integrated into the LLVM project. \cite{bolt-in-llvm} There have also been attempts to integrate \textit{BOLT} into the kernel. \cite{bolt-kernel} 
+
+\enlargethispage{2\baselineskip}
+Although other techniques unrelated to function sorting, such as neural networks, could be applied, the author is not aware of any papers that have specifically explored their use for function ordering at this time.

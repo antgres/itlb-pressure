@@ -1,0 +1,21 @@
+\chapter{Introduction}\label{chapt:intro}
+
+Emerging from the industrial age, we have been living in an information age since the middle of the 20th century. This has made the world and our society of today a complex one. \cite{Dietel2014} \cite{hauptSociety} 
+
+Unlike the industrial age, the focus of the information age is not on machines that extend the human physique - for example through the invention of the railway or the car, allowing us to travel longer distances faster - but on the extension of our brains, allowing us to solve difficult and tedious tasks in a fraction of the time through the help of computer systems. \cite{Dietel2014} \cite{hauptSociety} In this context, information on how something can be done became the most important asset. \cite{Dietel2014}
+
+However, "what characterizes the current technological [age] is not the centrality of knowledge and information, but the application of such knowledge and information in regards to knowledge generation and information processing/communication devices, in a cumulative feedback loop between innovation and the uses of innovation." \cite{castells_2012}
+
+In the sense of this virtuous loop are also the topics we are dealing with in this generation: Machine Learning, Artificial Intelligence, Big Data, Autonomous driving, Industry 4.0, Virtual Reality, Digital Twins,  to name just a few.
+
+In order to implement and use these technologies productively, we require a huge amount of number crunching, often in real time. Additionally, these applications should not only have to do their job, but should also be cryptographically safe, accessible via the internet, synchronize with other systems, etc. Furthermore, the software behind them must also meet the requirements mentioned above in the shortest time-to-market possible to remain competitive. \cite{timemarket} \cite{masterembedded}
+
+\newpage
+
+From the point of view of the hardware, however, we are reaching a limit: Over the years, transistor size and clock frequency have evolved exponentially, driven by Moore's Law. This has roughly improved the average performance of a computer every year. \cite{berger}
+
+The consequence of this is that the transistor size has become so small where it becomes increasingly difficult to further increase clock frequency without risking processor stability or overheating of the processor. As a result, Dennard Scaling, which was the main driver behind the annual performance boost, is losing momentum. \cite{berger} \cite{quantivapproach}
+
+In order to compensate for this circumstance, one possibility is to further optimise the existing technology. This thesis focuses on the analysis of code collocation in the Linux kernel with the aim to reduce ITLB pressure. For this purpose, several possible methods are discussed and compared with each other. 
+
+Firstly, in the second chapter, the objective of this thesis will be defined. The following chapter, chapter three, will introduce relevant concepts, including memory hierarchy, caches, virtual memory, paging, translation lookaside buffer, and the performance monitoring unit. In chapter four, a conceptual analysis is conducted to address how to analyse a program for a weighted call graph and how to sort a weighted call graph into a linear layout. Building on this analysis, chapter five defines an implementation to achieve the objective. Finally, the project concludes with potential improvements as well as a summary.
