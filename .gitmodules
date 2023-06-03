@@ -1,0 +1,3 @@
+[submodule "tools/hfsort-light"]
+	path = tools/hfsort-light
+	url = https://github.com/antgres/hfsort-light
