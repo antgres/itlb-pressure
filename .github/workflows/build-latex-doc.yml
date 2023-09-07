@@ -1,8 +1,8 @@
 name: Build LaTeX document
 on: [push]
+permissions: write-all
 jobs:
   build_latex:
-    permissions: write-all
     runs-on: ubuntu-latest
     steps:
       - name: Set up Git repository
